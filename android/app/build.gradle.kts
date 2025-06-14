@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.movieradar"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.1.10909125" // Changed to a different version to avoid download issues
+    ndkVersion = "29.0.13113456" // Changed to a different version to avoid download issues
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

@@ -28,38 +28,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   void _addSampleMovies() {
     final sampleMovies = [
-      Movie(
-        id: _movieService.generateUniqueId(),
-        title: 'Inception',
-        releaseYear: 2010,
-        director: 'Christopher Nolan',
-        isWatched: true,
-        dateAdded: DateTime.now().subtract(const Duration(days: 10)),
-        dateWatched: DateTime.now().subtract(const Duration(days: 2)),
-        posterUrl: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-        overview: 'Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: "inception", the implantation of another person\'s idea into a target\'s subconscious.',
-      ),
-      Movie(
-        id: _movieService.generateUniqueId(),
-        title: 'The Shawshank Redemption',
-        releaseYear: 1994,
-        director: 'Frank Darabont',
-        isWatched: false,
-        dateAdded: DateTime.now().subtract(const Duration(days: 5)),
-        posterUrl: 'https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg',
-        overview: 'Framed in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank prison, where he puts his accounting skills to work for an amoral warden. During his long stretch in prison, Dufresne comes to be admired by the other inmates -- including an older prisoner named Red -- for his integrity and unquenchable sense of hope.',
-      ),
-      Movie(
-        id: _movieService.generateUniqueId(),
-        title: 'Pulp Fiction',
-        releaseYear: 1994,
-        director: 'Quentin Tarantino',
-        isWatched: true,
-        dateAdded: DateTime.now().subtract(const Duration(days: 15)),
-        dateWatched: DateTime.now().subtract(const Duration(days: 5)),
-        posterUrl: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
-        overview: 'A burger-loving hit man, his philosophical partner, a drug-addled gangster\'s moll and a washed-up boxer converge in this sprawling, comedic crime caper. Their adventures unfurl in three stories that ingeniously trip back and forth in time.',
-      ),
+      
     ];
 
     for (var movie in sampleMovies) {
