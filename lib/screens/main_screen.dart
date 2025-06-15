@@ -18,13 +18,29 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   final MovieService _movieService = MovieService();
   late TabController _tabController;
   bool _isGridView = false; // Default to list view
+    // Search functionality
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  String _searchQuery = '';
+  
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
+    // Setup search controller
+    _searchController.addListener(_onSearchChanged);
+    
     // Load view preference
     _loadViewPreference();
+  }
+    // Handle search query changes
+  void _onSearchChanged() {
+    if (_isSearching) {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    }
   }
   
   // Load the user's view preference
@@ -40,21 +56,50 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_grid_view', _isGridView);
   }
-
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
     super.dispose();
   }
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(      appBar: AppBar(
-        title: const Text('MovieRadar'),
+  Widget build(BuildContext context) {    
+    return Scaffold(
+      appBar: AppBar(
+        title: _isSearching 
+          ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+              decoration: InputDecoration(
+                hintText: 'Search movies...',
+                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)),
+                border: InputBorder.none,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _toggleSearch();
+                  },
+                ),
+              ),
+            )
+          : const Text('MovieRadar'),
         actions: [
+          // Search button
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Search',
+              onPressed: _toggleSearch,
+            ),
+            
           // Toggle between list and grid view
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
-            tooltip: _isGridView ? 'List View' : 'Grid View',            onPressed: () async {
+            tooltip: _isGridView ? 'List View' : 'Grid View',
+            onPressed: () async {
               setState(() {
                 _isGridView = !_isGridView;
               });
@@ -62,6 +107,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               await _saveViewPreference();
             },
           ),
+          
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -71,20 +117,62 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               );
             },
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Watchlist', icon: Icon(Icons.playlist_add_check)),
-            Tab(text: 'Watched', icon: Icon(Icons.history)),
-          ],
+        ],        bottom: PreferredSize(
+          // Use a fixed height that accommodates both scenarios
+          preferredSize: Size.fromHeight(_isSearching && _searchQuery.isNotEmpty ? 90 : kToolbarHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Display search info if searching
+              if (_isSearching && _searchQuery.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Search results for: "$_searchQuery"',
+                          style: const TextStyle(
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: _clearSearch,
+                        tooltip: 'Clear search',
+                        iconSize: 20,
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                ),
+                // Tab bar
+              SizedBox(
+                height: kToolbarHeight,
+                child: TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: 'Watchlist', icon: Icon(Icons.playlist_add_check)),
+                    Tab(text: 'Watched', icon: Icon(Icons.history)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ),      
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildMovieList(_movieService.getUnwatchedMovies()),
-          _buildMovieList(_movieService.getWatchedMovies()),
+          _buildMovieList(_filterMovies(_movieService.getUnwatchedMovies())),
+          _buildMovieList(_filterMovies(_movieService.getWatchedMovies())),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -100,16 +188,30 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.movie_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              'No movies found',
+            const SizedBox(height: 16),            Text(
+              _isSearching && _searchQuery.isNotEmpty 
+                ? 'No results found' 
+                : 'No movies found',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add movies using the + button',
+              _isSearching && _searchQuery.isNotEmpty 
+                ? 'Try a different search term' 
+                : 'Add movies using the + button',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
             ),
+            if (_isSearching && _searchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    _toggleSearch();
+                  },
+                  child: const Text('Clear Search'),
+                ),
+              ),
           ],
         ),
       );
@@ -411,5 +513,43 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         // Refresh UI
       });
     }
+  }
+    // Filter movies based on search query
+  List<Movie> _filterMovies(List<Movie> movies) {
+    if (!_isSearching || _searchQuery.isEmpty) {
+      return movies;
+    }
+    
+    final query = _searchQuery.toLowerCase();
+    return movies.where((movie) {
+      return movie.title.toLowerCase().contains(query) || 
+             (movie.director?.toLowerCase().contains(query) ?? false) ||
+             (movie.releaseYear?.toString().contains(query) ?? false);
+    }).toList();
+  }
+    // Toggle search bar visibility
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (_isSearching) {
+        // Just enabled search, but don't set query until user types
+        _searchQuery = '';
+      } else {
+        // Disabled search, clear everything
+        _searchController.clear();
+        _searchQuery = '';
+      }
+    });
+  }
+
+  // Clear the search query
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+      if (_isSearching) {
+        _isSearching = false;
+      }
+    });
   }
 }
