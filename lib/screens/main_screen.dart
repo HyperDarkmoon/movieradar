@@ -5,6 +5,7 @@ import 'package:movieradar/screens/add_movie_screen.dart';
 import 'package:movieradar/screens/movie_detail_screen.dart';
 import 'package:movieradar/screens/settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,18 +17,28 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
   final MovieService _movieService = MovieService();
   late TabController _tabController;
-
+  bool _isGridView = false; // Default to list view
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
-    // Add some sample movies for testing
-    _addSampleMovies();
+    // Load view preference
+    _loadViewPreference();
   }
-  // Removed sample movies method as we now load from storage
-  void _addSampleMovies() {
-    // This method is kept empty as we now load data from persistent storage
+  
+  // Load the user's view preference
+  Future<void> _loadViewPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isGridView = prefs.getBool('is_grid_view') ?? false;
+    });
+  }
+  
+  // Save the user's view preference
+  Future<void> _saveViewPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_grid_view', _isGridView);
   }
 
   @override
@@ -37,10 +48,20 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return Scaffold(      appBar: AppBar(
         title: const Text('MovieRadar'),
         actions: [
+          // Toggle between list and grid view
+          IconButton(
+            icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
+            tooltip: _isGridView ? 'List View' : 'Grid View',            onPressed: () async {
+              setState(() {
+                _isGridView = !_isGridView;
+              });
+              // Save preference
+              await _saveViewPreference();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -72,9 +93,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  Widget _buildMovieList(List<Movie> movies) {
+  }  Widget _buildMovieList(List<Movie> movies) {
     if (movies.isEmpty) {
       return Center(
         child: Column(
@@ -96,7 +115,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       );
     }
 
+    // Use AnimatedSwitcher for smooth transition between list and grid views
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: _isGridView 
+          ? _buildGridView(movies)
+          : _buildListView(movies),
+    );
+  }
+    Widget _buildListView(List<Movie> movies) {
     return ListView.builder(
+      key: const ValueKey('list-view'),
       itemCount: movies.length,
       padding: const EdgeInsets.all(8),
       itemBuilder: (context, index) {
@@ -106,6 +143,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           elevation: 2,
           child: InkWell(
             onTap: () => _navigateToMovieDetails(movie),
+            splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -212,6 +251,132 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       },
     );
   }
+  Widget _buildGridView(List<Movie> movies) {
+    return GridView.builder(
+      key: const ValueKey('grid-view'),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: movies.length,
+      padding: const EdgeInsets.all(8),
+      itemBuilder: (context, index) {
+        final movie = movies[index];
+        return Card(
+          elevation: 2,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: () => _navigateToMovieDetails(movie),
+            splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Poster area
+                Expanded(
+                  flex: 3,
+                  child: Hero(
+                    tag: 'movie_${movie.id}',
+                    child: movie.posterUrl != null && movie.posterUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: movie.posterUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: CircularProgressIndicator()),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: Text(
+                                movie.title.substring(0, 1),
+                                style: const TextStyle(fontSize: 40),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey[300],
+                          child: Center(
+                            child: Text(
+                              movie.title.substring(0, 1),
+                              style: const TextStyle(fontSize: 40),
+                            ),
+                          ),
+                        ),
+                  ),
+                ),
+                
+                // Movie info area
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          movie.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        if (movie.releaseYear != null)
+                          Text(
+                            movie.releaseYear.toString(),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                  // Watch status indicator with toggle button
+                InkWell(
+                  onTap: () async {
+                    await _movieService.toggleWatchedStatus(movie.id);
+                    setState(() {
+                      // Refresh UI
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    color: movie.isWatched ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          movie.isWatched ? Icons.visibility : Icons.visibility_outlined,
+                          size: 16,
+                          color: movie.isWatched ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          movie.isWatched ? 'Watched' : 'Not watched',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: movie.isWatched ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
   void _navigateToAddMovie() async {
     final result = await Navigator.push(
       context,
