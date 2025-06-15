@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:movieradar/models/movie.dart';
 
@@ -14,34 +16,58 @@ class TMDBService {
       return [];
     }
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/search/movie?api_key=$apiKey&query=${Uri.encodeComponent(query)}'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/search/movie?api_key=$apiKey&query=${Uri.encodeComponent(query)}'),
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final List<dynamic> results = data['results'];
-      
-      return results
-        .where((movie) => movie['title'] != null)
-        .map((movie) => MovieSearchResult.fromJson(movie))
-        .toList();
-    } else {
-      throw Exception('Failed to search movies: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        
+        return results
+          .where((movie) => movie['title'] != null)
+          .map((movie) => MovieSearchResult.fromJson(movie))
+          .toList();
+      } else {
+        throw Exception('Failed to search movies: ${response.statusCode}');
+      }
+    } on SocketException catch (e) {
+      throw Exception('Network error: Please check your internet connection. (${e.message})');
+    } on HttpException catch (e) {
+      throw Exception('HTTP error: ${e.message}');
+    } on FormatException {
+      throw Exception('Invalid response format from server');
+    } on TimeoutException {
+      throw Exception('Request timed out. Please try again.');
+    } catch (e) {
+      throw Exception('Error searching: $e');
     }
   }
 
   // Get detailed information about a movie by its ID
   Future<MovieDetail> getMovieDetails(int movieId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/movie/$movieId?api_key=$apiKey&append_to_response=credits'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/movie/$movieId?api_key=$apiKey&append_to_response=credits'),
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      return MovieDetail.fromJson(data);
-    } else {
-      throw Exception('Failed to load movie details: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return MovieDetail.fromJson(data);
+      } else {
+        throw Exception('Failed to load movie details: ${response.statusCode}');
+      }
+    } on SocketException catch (e) {
+      throw Exception('Network error: Please check your internet connection. (${e.message})');
+    } on HttpException catch (e) {
+      throw Exception('HTTP error: ${e.message}');
+    } on FormatException {
+      throw Exception('Invalid response format from server');
+    } on TimeoutException {
+      throw Exception('Request timed out. Please try again.');
+    } catch (e) {
+      throw Exception('Error fetching details: $e');
     }
   }
 

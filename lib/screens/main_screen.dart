@@ -25,15 +25,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     // Add some sample movies for testing
     _addSampleMovies();
   }
-
+  // Removed sample movies method as we now load from storage
   void _addSampleMovies() {
-    final sampleMovies = [
-      
-    ];
-
-    for (var movie in sampleMovies) {
-      _movieService.addMovie(movie);
-    }
+    // This method is kept empty as we now load data from persistent storage
   }
 
   @override
@@ -41,7 +35,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     _tabController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,10 +196,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       icon: Icon(
                         movie.isWatched ? Icons.visibility : Icons.visibility_outlined,
                         color: movie.isWatched ? Colors.green : Colors.grey,
-                      ),
-                      onPressed: () {
+                      ),                  onPressed: () async {
+                        await _movieService.toggleWatchedStatus(movie.id);
                         setState(() {
-                          _movieService.toggleWatchedStatus(movie.id);
+                          // Refresh UI
                         });
                       },
                     ),
@@ -219,7 +212,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       },
     );
   }
-
   void _navigateToAddMovie() async {
     final result = await Navigator.push(
       context,
@@ -227,8 +219,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
 
     if (result != null && result is Movie) {
+      await _movieService.addMovie(result);
       setState(() {
-        _movieService.addMovie(result);
+        // Refresh UI
       });
     }
   }
@@ -242,13 +235,15 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
 
     if (result != null) {
+      // The movie might have been updated or deleted
+      if (result is Movie) {
+        await _movieService.updateMovie(result);
+      } else if (result is String && result == 'delete') {
+        await _movieService.removeMovie(movie.id);
+      }
+      
       setState(() {
-        // The movie might have been updated or deleted
-        if (result is Movie) {
-          _movieService.updateMovie(result);
-        } else if (result is String && result == 'delete') {
-          _movieService.removeMovie(movie.id);
-        }
+        // Refresh UI
       });
     }
   }

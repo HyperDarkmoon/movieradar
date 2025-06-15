@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:movieradar/screens/main_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:movieradar/providers/theme_provider.dart';
+import 'package:movieradar/services/movie_service.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize services
+  final movieService = MovieService();
+  await movieService.init();
+  
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
