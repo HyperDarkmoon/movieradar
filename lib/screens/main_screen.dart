@@ -14,27 +14,29 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   final MovieService _movieService = MovieService();
   late TabController _tabController;
   bool _isGridView = false; // Default to list view
-    // Search functionality
+  // Search functionality
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Setup search controller
     _searchController.addListener(_onSearchChanged);
-    
+
     // Load view preference
     _loadViewPreference();
   }
-    // Handle search query changes
+
+  // Handle search query changes
   void _onSearchChanged() {
     if (_isSearching) {
       setState(() {
@@ -42,7 +44,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       });
     }
   }
-  
+
   // Load the user's view preference
   Future<void> _loadViewPreference() async {
     final prefs = await SharedPreferences.getInstance();
@@ -50,12 +52,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       _isGridView = prefs.getBool('is_grid_view') ?? false;
     });
   }
-  
+
   // Save the user's view preference
   Future<void> _saveViewPreference() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_grid_view', _isGridView);
   }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -63,29 +66,36 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     _searchController.dispose();
     super.dispose();
   }
+
   @override
-  Widget build(BuildContext context) {    
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching 
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-              decoration: InputDecoration(
-                hintText: 'Search movies...',
-                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)),
-                border: InputBorder.none,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _toggleSearch();
-                  },
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
-              ),
-            )
-          : const Text('MovieRadar'),
+                decoration: InputDecoration(
+                  hintText: 'Search movies...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.7),
+                  ),
+                  border: InputBorder.none,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      _toggleSearch();
+                    },
+                  ),
+                ),
+              )
+            : const Text('MovieRadar'),
         actions: [
           // Search button
           if (!_isSearching)
@@ -94,7 +104,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               tooltip: 'Search',
               onPressed: _toggleSearch,
             ),
-            
+
           // Toggle between list and grid view
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
@@ -107,7 +117,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               await _saveViewPreference();
             },
           ),
-          
+
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -117,9 +127,12 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               );
             },
           ),
-        ],        bottom: PreferredSize(
+        ],
+        bottom: PreferredSize(
           // Use a fixed height that accommodates both scenarios
-          preferredSize: Size.fromHeight(_isSearching && _searchQuery.isNotEmpty ? 90 : kToolbarHeight),
+          preferredSize: Size.fromHeight(
+            _isSearching && _searchQuery.isNotEmpty ? 90 : kToolbarHeight,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.end,
@@ -128,16 +141,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               if (_isSearching && _searchQuery.isNotEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 4.0,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
                     children: [
                       Expanded(
                         child: Text(
                           'Search results for: "$_searchQuery"',
-                          style: const TextStyle(
-                            fontStyle: FontStyle.italic,
-                          ),
+                          style: const TextStyle(fontStyle: FontStyle.italic),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -147,19 +161,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         onPressed: _clearSearch,
                         tooltip: 'Clear search',
                         iconSize: 20,
-                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
                         padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
                 ),
-                // Tab bar
+              // Tab bar
               SizedBox(
                 height: kToolbarHeight,
                 child: TabBar(
                   controller: _tabController,
                   tabs: const [
-                    Tab(text: 'Watchlist', icon: Icon(Icons.playlist_add_check)),
+                    Tab(
+                      text: 'Watchlist',
+                      icon: Icon(Icons.playlist_add_check),
+                    ),
                     Tab(text: 'Watched', icon: Icon(Icons.history)),
                   ],
                 ),
@@ -167,7 +187,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ],
           ),
         ),
-      ),      
+      ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -181,25 +201,32 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         child: const Icon(Icons.add),
       ),
     );
-  }  Widget _buildMovieList(List<Movie> movies) {
+  }
+
+  Widget _buildMovieList(List<Movie> movies) {
     if (movies.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.movie_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),            Text(
-              _isSearching && _searchQuery.isNotEmpty 
-                ? 'No results found' 
-                : 'No movies found',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              _isSearching && _searchQuery.isNotEmpty
+                  ? 'No results found'
+                  : 'No movies found',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Text(
-              _isSearching && _searchQuery.isNotEmpty 
-                ? 'Try a different search term' 
-                : 'Add movies using the + button',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+              _isSearching && _searchQuery.isNotEmpty
+                  ? 'Try a different search term'
+                  : 'Add movies using the + button',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
             ),
             if (_isSearching && _searchQuery.isNotEmpty)
               Padding(
@@ -223,17 +250,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       switchInCurve: Curves.easeInOut,
       switchOutCurve: Curves.easeInOut,
       transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
+        return FadeTransition(opacity: animation, child: child);
       },
-      child: _isGridView 
-          ? _buildGridView(movies)
-          : _buildListView(movies),
+      child: _isGridView ? _buildGridView(movies) : _buildListView(movies),
     );
   }
-    Widget _buildListView(List<Movie> movies) {
+
+  Widget _buildListView(List<Movie> movies) {
+    // Use ColorScheme to ensure text visibility in both light and dark modes
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return ListView.builder(
       key: const ValueKey('list-view'),
       itemCount: movies.length,
@@ -246,7 +273,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           child: InkWell(
             onTap: () => _navigateToMovieDetails(movie),
             splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            highlightColor: Theme.of(
+              context,
+            ).colorScheme.primary.withOpacity(0.1),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -258,44 +287,55 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   ),
                   child: Hero(
                     tag: 'movie_${movie.id}',
-                    child: movie.posterUrl != null && movie.posterUrl!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: movie.posterUrl!,
-                          width: 100,
-                          height: 150,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
+                    child:
+                        movie.posterUrl != null && movie.posterUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: movie.posterUrl!,
                             width: 100,
                             height: 150,
-                            color: Colors.grey[300],
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => Container(
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 100,
+                              height: 150,
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              width: 100,
+                              height: 150,
+                              color: Colors.grey[300],
+                              child: Center(
+                                child: Text(
+                                  movie.title.substring(0, 1),
+                                  style: TextStyle(
+                                    fontSize: 40,
+                                    color: colorScheme
+                                        .onSurface, // Use theme-aware color
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
                             width: 100,
                             height: 150,
                             color: Colors.grey[300],
                             child: Center(
                               child: Text(
                                 movie.title.substring(0, 1),
-                                style: const TextStyle(fontSize: 40),
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  color: colorScheme
+                                      .onSurface, // Use theme-aware color
+                                ),
                               ),
                             ),
                           ),
-                        )
-                      : Container(
-                          width: 100,
-                          height: 150,
-                          color: Colors.grey[300],
-                          child: Center(
-                            child: Text(
-                              movie.title.substring(0, 1),
-                              style: const TextStyle(fontSize: 40),
-                            ),
-                          ),
-                        ),
                   ),
                 ),
-                
+
                 // Movie details
                 Expanded(
                   child: Padding(
@@ -305,39 +345,54 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       children: [
                         Text(
                           movie.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
+                            color:
+                                colorScheme.onSurface, // Use theme-aware color
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          movie.releaseYear != null 
-                            ? '${movie.releaseYear} • ${movie.director ?? 'Unknown director'}' 
-                            : movie.director ?? '',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          movie.releaseYear != null
+                              ? '${movie.releaseYear} • ${movie.director ?? 'Unknown director'}'
+                              : movie.director ?? '',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme
+                                .onSurfaceVariant, // Use theme-aware color
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        if (movie.overview != null && movie.overview!.isNotEmpty)
+                        if (movie.overview != null &&
+                            movie.overview!.isNotEmpty)
                           Text(
                             movie.overview!,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme
+                                  .onSurfaceVariant, // Use theme-aware color
+                            ),
                           ),
                       ],
                     ),
                   ),
                 ),
-                
+
                 // Watch status button
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: Icon(
-                        movie.isWatched ? Icons.visibility : Icons.visibility_outlined,
-                        color: movie.isWatched ? Colors.green : Colors.grey,
-                      ),                  onPressed: () async {
+                        movie.isWatched
+                            ? Icons.visibility
+                            : Icons.visibility_outlined,
+                        color: movie.isWatched
+                            ? Colors.green
+                            : colorScheme
+                                  .onSurfaceVariant, // Use theme-aware color
+                      ),
+                      onPressed: () async {
                         await _movieService.toggleWatchedStatus(movie.id);
                         setState(() {
                           // Refresh UI
@@ -353,6 +408,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       },
     );
   }
+
   Widget _buildGridView(List<Movie> movies) {
     return GridView.builder(
       key: const ValueKey('grid-view'),
@@ -375,7 +431,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           child: InkWell(
             onTap: () => _navigateToMovieDetails(movie),
             splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            highlightColor: Theme.of(
+              context,
+            ).colorScheme.primary.withOpacity(0.1),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -384,15 +442,28 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   flex: 3,
                   child: Hero(
                     tag: 'movie_${movie.id}',
-                    child: movie.posterUrl != null && movie.posterUrl!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: movie.posterUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[300],
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => Container(
+                    child:
+                        movie.posterUrl != null && movie.posterUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: movie.posterUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[300],
+                              child: Center(
+                                child: Text(
+                                  movie.title.substring(0, 1),
+                                  style: const TextStyle(fontSize: 40),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
                             color: Colors.grey[300],
                             child: Center(
                               child: Text(
@@ -401,46 +472,37 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                               ),
                             ),
                           ),
-                        )
-                      : Container(
-                          color: Colors.grey[300],
-                          child: Center(
-                            child: Text(
-                              movie.title.substring(0, 1),
-                              style: const TextStyle(fontSize: 40),
-                            ),
-                          ),
-                        ),
                   ),
                 ),
-                
-                // Movie info area
-                Expanded(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+
+                // Movie info area with unconstrained height to prevent overflow
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 40),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           movie.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 2),
                         if (movie.releaseYear != null)
                           Text(
                             movie.releaseYear.toString(),
                             style: Theme.of(context).textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis,
                           ),
                       ],
                     ),
                   ),
                 ),
-                  // Watch status indicator with toggle button
+                
+                // Watch status indicator with toggle button
                 InkWell(
                   onTap: () async {
                     await _movieService.toggleWatchedStatus(movie.id);
@@ -450,12 +512,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    color: movie.isWatched ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    color: movie.isWatched
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          movie.isWatched ? Icons.visibility : Icons.visibility_outlined,
+                          movie.isWatched
+                              ? Icons.visibility
+                              : Icons.visibility_outlined,
                           size: 16,
                           color: movie.isWatched ? Colors.green : Colors.grey,
                         ),
@@ -478,7 +544,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       },
     );
   }
-  
+
   void _navigateToAddMovie() async {
     final result = await Navigator.push(
       context,
@@ -496,9 +562,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   void _navigateToMovieDetails(Movie movie) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => MovieDetailScreen(movie: movie),
-      ),
+      MaterialPageRoute(builder: (context) => MovieDetailScreen(movie: movie)),
     );
 
     if (result != null) {
@@ -508,26 +572,28 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       } else if (result is String && result == 'delete') {
         await _movieService.removeMovie(movie.id);
       }
-      
+
       setState(() {
         // Refresh UI
       });
     }
   }
-    // Filter movies based on search query
+
+  // Filter movies based on search query
   List<Movie> _filterMovies(List<Movie> movies) {
     if (!_isSearching || _searchQuery.isEmpty) {
       return movies;
     }
-    
+
     final query = _searchQuery.toLowerCase();
     return movies.where((movie) {
-      return movie.title.toLowerCase().contains(query) || 
-             (movie.director?.toLowerCase().contains(query) ?? false) ||
-             (movie.releaseYear?.toString().contains(query) ?? false);
+      return movie.title.toLowerCase().contains(query) ||
+          (movie.director?.toLowerCase().contains(query) ?? false) ||
+          (movie.releaseYear?.toString().contains(query) ?? false);
     }).toList();
   }
-    // Toggle search bar visibility
+
+  // Toggle search bar visibility
   void _toggleSearch() {
     setState(() {
       _isSearching = !_isSearching;
