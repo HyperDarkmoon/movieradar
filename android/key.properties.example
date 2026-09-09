@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties and fill with your real values.
+# Use the same keystore that signed the already-installed app if you want Android to treat installs as updates.
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=YOUR_KEY_ALIAS
+storeFile=../keystore/release-keystore.jks

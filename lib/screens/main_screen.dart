@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:movieradar/models/movie.dart';
 import 'package:movieradar/services/movie_service.dart';
@@ -17,8 +20,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen>
     with SingleTickerProviderStateMixin {
   final MovieService _movieService = MovieService();
+  final Random _random = Random();
   late TabController _tabController;
   bool _isGridView = false; // Default to list view
+  bool _isPickingRandomMovie = false;
   // Search functionality
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
@@ -191,7 +196,7 @@ class _MainScreenState extends State<MainScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildMovieList(_filterMovies(_movieService.getUnwatchedMovies())),
+          _buildWatchlistTab(),
           _buildMovieList(_filterMovies(_movieService.getWatchedMovies())),
         ],
       ),
@@ -200,6 +205,39 @@ class _MainScreenState extends State<MainScreen>
         tooltip: 'Add Movie',
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _buildWatchlistTab() {
+    final watchlistMovies = _movieService.getUnwatchedMovies();
+    final filteredWatchlist = _filterMovies(watchlistMovies);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: watchlistMovies.isEmpty || _isPickingRandomMovie
+                  ? null
+                  : () => _pickRandomMovie(watchlistMovies),
+              icon: AnimatedRotation(
+                turns: _isPickingRandomMovie ? 1 : 0,
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeInOut,
+                child: const Icon(Icons.casino),
+              ),
+              label: Text(
+                _isPickingRandomMovie
+                    ? 'Picking a movie...'
+                    : 'Pick Random Movie',
+              ),
+            ),
+          ),
+        ),
+        Expanded(child: _buildMovieList(filteredWatchlist)),
+      ],
     );
   }
 
@@ -579,6 +617,41 @@ class _MainScreenState extends State<MainScreen>
     }
   }
 
+  Future<void> _pickRandomMovie(List<Movie> watchlistMovies) async {
+    if (watchlistMovies.isEmpty || _isPickingRandomMovie) {
+      return;
+    }
+
+    final selectedMovie = watchlistMovies[_random.nextInt(watchlistMovies.length)];
+
+    setState(() {
+      _isPickingRandomMovie = true;
+    });
+
+    final shouldOpenDetails = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _RandomMoviePickerDialog(
+          watchlistMovies: watchlistMovies,
+          selectedMovie: selectedMovie,
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isPickingRandomMovie = false;
+    });
+
+    if (shouldOpenDetails == true) {
+      _navigateToMovieDetails(selectedMovie);
+    }
+  }
+
   // Filter movies based on search query
   List<Movie> _filterMovies(List<Movie> movies) {
     if (!_isSearching || _searchQuery.isEmpty) {
@@ -617,5 +690,198 @@ class _MainScreenState extends State<MainScreen>
         _isSearching = false;
       }
     });
+  }
+}
+
+class _RandomMoviePickerDialog extends StatefulWidget {
+  final List<Movie> watchlistMovies;
+  final Movie selectedMovie;
+
+  const _RandomMoviePickerDialog({
+    required this.watchlistMovies,
+    required this.selectedMovie,
+  });
+
+  @override
+  State<_RandomMoviePickerDialog> createState() => _RandomMoviePickerDialogState();
+}
+
+class _RandomMoviePickerDialogState extends State<_RandomMoviePickerDialog>
+    with SingleTickerProviderStateMixin {
+  final Random _random = Random();
+  late final AnimationController _revealController;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _rotationAnimation;
+  Timer? _shuffleTimer;
+  late Movie _displayedMovie;
+  bool _isRevealed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayedMovie = widget.watchlistMovies[
+      _random.nextInt(widget.watchlistMovies.length)
+    ];
+
+    _revealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _revealController,
+      curve: Curves.easeOutBack,
+    );
+
+    _rotationAnimation = Tween<double>(begin: 0.06, end: 0.0).animate(
+      CurvedAnimation(parent: _revealController, curve: Curves.easeOutCubic),
+    );
+
+    _startShuffleAnimation();
+  }
+
+  @override
+  void dispose() {
+    _shuffleTimer?.cancel();
+    _revealController.dispose();
+    super.dispose();
+  }
+
+  void _startShuffleAnimation() {
+    int tick = 0;
+    _shuffleTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      tick++;
+      if (tick >= 16) {
+        timer.cancel();
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _displayedMovie = widget.selectedMovie;
+          _isRevealed = true;
+        });
+
+        _revealController.forward();
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _displayedMovie = widget.watchlistMovies[
+          _random.nextInt(widget.watchlistMovies.length)
+        ];
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        _isRevealed ? 'Tonight\'s pick' : 'Shuffling your watchlist...',
+      ),
+      content: SizedBox(
+        width: 320,
+        child: AnimatedBuilder(
+          animation: _revealController,
+          builder: (context, child) {
+            return Transform.rotate(
+              angle: _isRevealed ? _rotationAnimation.value : 0,
+              child: Transform.scale(
+                scale: _isRevealed ? _scaleAnimation.value : 1,
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 190,
+                    child: _displayedMovie.posterUrl != null &&
+                            _displayedMovie.posterUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: _displayedMovie.posterUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => _buildPosterFallback(),
+                          )
+                        : _buildPosterFallback(),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _displayedMovie.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _displayedMovie.releaseYear != null
+                              ? '${_displayedMovie.releaseYear} • ${_displayedMovie.director ?? 'Unknown director'}'
+                              : (_displayedMovie.director ?? 'Unknown director'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Close'),
+        ),
+        FilledButton(
+          onPressed: _isRevealed ? () => Navigator.of(context).pop(true) : null,
+          child: const Text('Open Details'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPosterFallback() {
+    return Container(
+      color: Colors.grey[300],
+      child: Center(
+        child: Text(
+          _displayedMovie.title.substring(0, 1),
+          style: const TextStyle(fontSize: 54),
+        ),
+      ),
+    );
   }
 }
