@@ -250,30 +250,28 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     ),
   );
   }  // Export to file and save it
-  // Check and request storage permissions on Android
+  // Check and request storage permissions on Android (legacy devices only)
   Future<bool> _checkAndRequestPermissions() async {
-    if (!Platform.isAndroid) return true; // Only Android needs explicit permissions
-    
-    // For Android 13+ (SDK 33+), we need different permissions
-    if (await Permission.manageExternalStorage.status.isGranted) {
-      return true;
-    }
-    
-    // Check storage permissions
+    if (!Platform.isAndroid) return true;
+
+    // On Android 10+ (API 29+) the app uses the Storage Access Framework file
+    // pickers, which grant scoped access on demand and need no permission.
+    // MANAGE_EXTERNAL_STORAGE / "all files access" is intentionally not used,
+    // as it trips Google Play Protect's install blocking for sideloaded apps.
+    final String androidVersion = Platform.operatingSystemVersion;
+    final String versionPart = androidVersion.split(' ').first;
+    final int? sdkInt = int.tryParse(versionPart);
+    if (sdkInt != null && sdkInt >= 10) return true;
+
+    // Android 9 and below: the legacy default export location writes straight
+    // to Downloads, so it still needs the (deprecated) storage permission.
     final storagePermission = await Permission.storage.status;
     if (storagePermission.isGranted) {
       return true;
     }
-    
-    // Request storage permission
+
     final status = await Permission.storage.request();
-    if (status.isGranted) {
-      return true;
-    }
-    
-    // For Android 13+, try to request manage external storage permission
-    final externalStorageStatus = await Permission.manageExternalStorage.request();
-    return externalStorageStatus.isGranted;
+    return status.isGranted;
   }
 
   Future<void> _exportToFile() async {
