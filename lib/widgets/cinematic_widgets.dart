@@ -37,7 +37,8 @@ class _CinematicBackgroundState extends State<CinematicBackground>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? Cinematic.bgTop : const Color(0xFFF4EEFB);
+    final baseGradient = isDark ? Cinematic.duskGradient : Cinematic.dayGradient;
+    final vignetteAlpha = isDark ? 0.16 : 0.06;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -46,8 +47,8 @@ class _CinematicBackgroundState extends State<CinematicBackground>
         final driftX = sin(t) * 0.12;
         final driftY = cos(t * 0.8) * 0.10;
 
-        return Container(
-          color: baseColor,
+        return DecoratedBox(
+          decoration: BoxDecoration(gradient: baseGradient),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -58,7 +59,9 @@ class _CinematicBackgroundState extends State<CinematicBackground>
                     center: Alignment(0.3 + driftX, -0.4 + driftY),
                     radius: 1.0,
                     colors: [
-                      Cinematic.deepViolet.withValues(alpha: 0.35),
+                      Cinematic.deepViolet.withValues(
+                        alpha: isDark ? 0.35 : 0.16,
+                      ),
                       Colors.transparent,
                     ],
                   ),
@@ -71,19 +74,24 @@ class _CinematicBackgroundState extends State<CinematicBackground>
                     center: Alignment(-0.5 - driftX * 0.8, 0.6 + driftY),
                     radius: 1.1,
                     colors: [
-                      Cinematic.nightViolet.withValues(alpha: 0.30),
+                      Cinematic.nightViolet.withValues(
+                        alpha: isDark ? 0.30 : 0.12,
+                      ),
                       Colors.transparent,
                     ],
                   ),
                 ),
               ),
               // Vignette
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     center: Alignment(0, 0.35),
                     radius: 1.3,
-                    colors: [Color(0x00000000), Color(0x2A000000)],
+                    colors: [
+                      const Color(0x00000000),
+                      Color(0x2A000000).withValues(alpha: vignetteAlpha),
+                    ],
                   ),
                 ),
               ),
@@ -544,6 +552,14 @@ class NeonChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = CinematicColors.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final labelColor = active
+        ? colors.glow
+        : scheme.onSurfaceVariant;
+    final inactiveBorder = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.12)
+        : colors.glow.withValues(alpha: 0.25);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -554,7 +570,7 @@ class NeonChip extends StatelessWidget {
         border: Border.all(
           color: active
               ? colors.glow.withValues(alpha: 0.55)
-              : Colors.white.withValues(alpha: 0.12),
+              : inactiveBorder,
         ),
       ),
       child: Row(
@@ -567,7 +583,7 @@ class NeonChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: active ? colors.glow : Cinematic.textSecondaryDark,
+              color: labelColor,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,

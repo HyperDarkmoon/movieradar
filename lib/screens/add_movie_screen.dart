@@ -205,9 +205,9 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
                           result.releaseYear != null
                               ? 'Released ${result.releaseYear}'
                               : 'Unknown year',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Cinematic.textSecondaryDark,
+                            color: Cinematic.textSecondaryOf(context),
                           ),
                         ),
                         trailing: const Icon(

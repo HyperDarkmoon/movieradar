@@ -68,9 +68,9 @@ class SettingsScreen extends StatelessWidget {
             title: 'DATA MANAGEMENT',
             child: ListTile(
               title: const Text('Import / Export Movies'),
-              subtitle: const Text(
+              subtitle: Text(
                 'Backup or transfer your collection',
-                style: TextStyle(color: Cinematic.textSecondaryDark),
+                style: TextStyle(color: Cinematic.textSecondaryOf(context)),
               ),
               leading: _TileIcon(icon: Icons.import_export, colors: colors),
               trailing: const Icon(
@@ -93,9 +93,9 @@ class SettingsScreen extends StatelessWidget {
             title: 'ABOUT',
             child: ListTile(
               title: const Text('About MovieRadar'),
-              subtitle: const Text(
+              subtitle: Text(
                 'Version 1.0.0',
-                style: TextStyle(color: Cinematic.textSecondaryDark),
+                style: TextStyle(color: Cinematic.textSecondaryOf(context)),
               ),
               leading: _TileIcon(
                 icon: Icons.local_movies,
@@ -134,12 +134,15 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = Cinematic.surfaceOf(context);
+    final cardBorder = Cinematic.cardBorderOf(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: Cinematic.surface,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,11 +151,11 @@ class _SettingsCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.6,
-                color: Cinematic.neonViolet,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -185,6 +188,21 @@ class _ThemeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CinematicColors.of(context);
     final selected = value == groupValue;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dotGradient = selected
+        ? Cinematic.glowGradient
+        : (isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF2A2148), Color(0xFF241B40)],
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFE3D8F6), Color(0xFFD8C9F0)],
+              ));
+    final dotBorder = selected
+        ? Colors.white.withValues(alpha: 0.4)
+        : isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : colors.glow.withValues(alpha: 0.3);
 
     return ListTile(
       leading: _TileIcon(icon: icon, colors: colors, active: selected),
@@ -195,23 +213,15 @@ class _ThemeTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(subtitle,
-          style: const TextStyle(color: Cinematic.textSecondaryDark)),
+          style: TextStyle(color: Cinematic.textSecondaryOf(context))),
       trailing: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         width: 22,
         height: 22,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: selected
-              ? Cinematic.glowGradient
-              : const LinearGradient(
-                  colors: [Color(0xFF2A2148), Color(0xFF241B40)],
-                ),
-          border: Border.all(
-            color: selected
-                ? Colors.white.withValues(alpha: 0.4)
-                : Colors.white.withValues(alpha: 0.12),
-          ),
+          gradient: dotGradient,
+          border: Border.all(color: dotBorder),
         ),
         child: selected
             ? const Icon(Icons.check, size: 14, color: Colors.white)
@@ -246,13 +256,17 @@ class _TileIcon extends StatelessWidget {
         border: Border.all(
           color: active
               ? colors.glow.withValues(alpha: 0.5)
-              : Colors.white.withValues(alpha: 0.1),
+              : Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : colors.glow.withValues(alpha: 0.22),
         ),
       ),
       child: Icon(
         icon,
         size: 19,
-        color: active ? colors.glow : Cinematic.textSecondaryDark,
+        color: active
+            ? colors.glow
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }

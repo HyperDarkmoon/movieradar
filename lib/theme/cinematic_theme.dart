@@ -23,6 +23,14 @@ class Cinematic {
   static const Color glassDark = Color(0x1F000000);
   static const Color lineLight = Color(0x33FFD6FF);
 
+  // Light surfacing (daymode)
+  static const Color dayTop = Color(0xFFF6F0FE);
+  static const Color dayBottom = Color(0xFFE9DDF8);
+  static const Color surfaceLight = Color(0xE6FFFFFF);
+  static const Color surfaceBrightLight = Color(0xFFFFFFFF);
+  static const Color lineDay = Color(0x4DE5DAF7);
+  static const Color glowDaySoft = Color(0x408B5CF6);
+
   // Text
   static const Color textPrimaryDark = Color(0xFFF3EDFF);
   static const Color textSecondaryDark = Color(0xFFB9ABE8);
@@ -42,7 +50,51 @@ class Cinematic {
     colors: [Color(0xFF3A1188), Color(0xFF1D0D3C), Color(0xFF0A0713)],
   );
 
+  static const LinearGradient dayGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [dayTop, dayBottom],
+  );
+
   static const Color appTitle = Color(0xFFEEDDFF);
+
+  // ------------------------------------------------------------------
+  // Theme-aware lookup helpers (adapt tokens to dark/light mode)
+  // ------------------------------------------------------------------
+
+  static Color textPrimaryOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? textPrimaryDark
+          : textPrimaryLight;
+
+  static Color textSecondaryOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? textSecondaryDark
+          : textSecondaryLight;
+
+  static Color surfaceOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? surface
+          : surfaceLight;
+
+  static Color surfaceBrightOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? surfaceBright
+          : surfaceBrightLight;
+
+  static Color bgOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? bgTop : dayTop;
+
+  static Color lineOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? line : lineDay;
+
+  static Color cardBorderOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Cinematic.deepViolet.withValues(alpha: 0.14);
+
+  static TextTheme textThemeOf(BuildContext context) =>
+      Theme.of(context).textTheme;
 }
 
 /// Extra colors shared across the cinematic widgets.
@@ -340,35 +392,50 @@ class CinematicTheme {
   }
 
   static ThemeData light() {
-    const seed = Cinematic.deepViolet;
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: seed,
+      seedColor: Cinematic.deepViolet,
       brightness: Brightness.light,
     ).copyWith(
-      primary: const Color(0xFF7A43D9),
+      primary: const Color(0xFF7A3FD6),
       onPrimary: Colors.white,
-      secondary: const Color(0xFF9D6BF0),
-      surface: const Color(0xFFFDF9FF),
+      primaryContainer: const Color(0xFFEDE0FF),
+      onPrimaryContainer: const Color(0xFF2A1050),
+      secondary: const Color(0xFF8B5CF6),
+      onSecondary: Colors.white,
+      secondaryContainer: const Color(0xFFF3E9FF),
+      onSecondaryContainer: const Color(0xFF341359),
+      tertiary: const Color(0xFFD946B4),
+      surface: const Color(0xFFFDFBFF),
       onSurface: Cinematic.textPrimaryLight,
       onSurfaceVariant: Cinematic.textSecondaryLight,
+      surfaceContainerLowest: const Color(0xFFFFFFFF),
+      surfaceContainerLow: const Color(0xFFF8F2FF),
+      surfaceContainer: const Color(0xFFF2E9FF),
+      surfaceContainerHigh: const Color(0xFFECE0FC),
+      surfaceContainerHighest: const Color(0xFFE6D8FA),
+      outline: const Color(0xFF9A8BBF),
+      outlineVariant: const Color(0xFFE0D5F5),
+      error: const Color(0xFFBA1A1A),
+      onError: Colors.white,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
+      shadowColor: const Color(0x2E8B5CF6),
     );
 
     return base.copyWith(
-      scaffoldBackgroundColor: const Color(0xFFF4EEFB),
-      canvasColor: const Color(0xFFF4EEFB),
+      scaffoldBackgroundColor: Cinematic.dayTop,
+      canvasColor: Cinematic.dayTop,
       extensions: const <ThemeExtension<dynamic>>[
         CinematicColors(
-          glass: Cinematic.glassLight,
-          glow: Cinematic.deepViolet,
-          glowSoft: Color(0x3D8B5CF6),
-          scrim: Color(0x59000000),
-          borderGlow: Color(0x598B5CF6),
+          glass: Color(0xCCFFFFFF),
+          glow: Color(0xFF7A3FD6),
+          glowSoft: Color(0x408B5CF6),
+          scrim: Color(0x33000000),
+          borderGlow: Color(0x738B5CF6),
         ),
       ],
       textTheme: _textTheme(base.textTheme, isDark: false),
@@ -381,17 +448,18 @@ class CinematicTheme {
         surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: Cinematic.surfaceLight,
         elevation: 1,
-        surfaceTintColor: Cinematic.deepViolet.withValues(alpha: 0.06),
+        surfaceTintColor: Cinematic.deepViolet.withValues(alpha: 0.05),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0x3DE5DAF7)),
         ),
       ),
       tabBarTheme: TabBarThemeData(
         dividerColor: Colors.transparent,
-        labelColor: const Color(0xFF7A43D9),
+        labelColor: const Color(0xFF7A3FD6),
         unselectedLabelColor: Cinematic.textSecondaryLight,
         labelStyle: const TextStyle(
           fontWeight: FontWeight.w800,
@@ -403,21 +471,81 @@ class CinematicTheme {
           fontSize: 13,
           letterSpacing: 0.8,
         ),
+        overlayColor: WidgetStatePropertyAll(
+          Cinematic.deepViolet.withValues(alpha: 0.08),
+        ),
+        indicatorColor: const Color(0xFF7A3FD6),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF7A3FD6),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Cinematic.deepViolet,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Cinematic.textPrimaryLight,
+          elevation: 1,
+          shadowColor: Cinematic.deepViolet.withValues(alpha: 0.25),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF7A3FD6),
+          side: const BorderSide(color: Color(0x668B5CF6)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF7A3FD6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0x18FFFFFF),
-        labelStyle: const TextStyle(color: Cinematic.textSecondaryLight),
+        fillColor: Colors.white.withValues(alpha: 0.85),
+        labelStyle: const TextStyle(
+          color: Cinematic.textSecondaryLight,
+          fontWeight: FontWeight.w500,
+        ),
+        hintStyle: TextStyle(
+          color: Cinematic.textSecondaryLight.withValues(alpha: 0.75),
+        ),
+        prefixIconColor: Cinematic.textSecondaryLight,
+        suffixIconColor: Cinematic.textSecondaryLight,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0x268B5CF6)),
+          borderSide: const BorderSide(color: Color(0x338B5CF6)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(
-            color: Color(0xFF7A43D9),
+            color: Color(0xFF7A3FD6),
             width: 1.6,
           ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.4),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.6),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -443,6 +571,65 @@ class CinematicTheme {
         color: Color(0x1F8B5CF6),
         thickness: 1,
         space: 1,
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: const Color(0xFF7A3FD6),
+        textColor: Cinematic.textPrimaryLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        trackOutlineColor: const WidgetStatePropertyAll(
+          Color(0x4D8B5CF6),
+        ),
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors.white
+              : Cinematic.textSecondaryLight,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? const Color(0xFF8B5CF6)
+              : const Color(0xFFE0D5F5),
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: Color(0xFF7A3FD6),
+        linearTrackColor: Color(0x1F8B5CF6),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: const Color(0xFF7A3FD6),
+        foregroundColor: Colors.white,
+        elevation: 3,
+        highlightElevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Cinematic.surfaceLight,
+        indicatorColor: Cinematic.deepViolet.withValues(alpha: 0.14),
+        shadowColor: Colors.transparent,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0x1F8B5CF6)),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
     );
   }

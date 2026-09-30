@@ -343,28 +343,28 @@ class _ExportCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Cinematic.surface,
+        color: Cinematic.surfaceOf(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: Cinematic.cardBorderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
-              color: Cinematic.neonViolet,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           if (subtitle.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: Cinematic.textSecondaryDark,
+              style: TextStyle(
+                color: Cinematic.textSecondaryOf(context),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -501,8 +501,8 @@ class _Tip extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: Cinematic.textSecondaryDark,
+            style: TextStyle(
+              color: Cinematic.textSecondaryOf(context),
               fontSize: 13,
               height: 1.4,
             ),

@@ -31,7 +31,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Cinematic.bgTop,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           const Positioned.fill(child: CinematicBackground()),
@@ -147,13 +147,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'SYNOPSIS',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: 3,
-                                        color: Cinematic.neonViolet,
+                                        color:
+                                            Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                     const SizedBox(height: 10),
@@ -161,7 +162,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                       _movie.overview!,
                                       style: textTheme.bodyLarge?.copyWith(
                                         height: 1.5,
-                                        color: Cinematic.textPrimaryDark,
+                                        color:
+                                            Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                   ],
@@ -327,9 +329,9 @@ class _Backdrop extends StatelessWidget {
               end: Alignment.bottomCenter,
               stops: const [0.35, 0.75, 1],
               colors: [
-                Cinematic.bgTop.withValues(alpha: 0.25),
-                Cinematic.bgTop.withValues(alpha: 0.8),
-                Cinematic.bgTop,
+                Cinematic.bgOf(context).withValues(alpha: 0.25),
+                Cinematic.bgOf(context).withValues(alpha: 0.8),
+                Cinematic.bgOf(context),
               ],
             ),
           ),

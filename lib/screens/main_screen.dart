@@ -26,6 +26,7 @@ class _MainScreenState extends State<MainScreen>
   late TabController _tabController;
   bool _isGridView = false;
   bool _isPickingRandomMovie = false;
+  bool _heroCollapsed = false;
 
   // Search
   final TextEditingController _searchController = TextEditingController();
@@ -52,6 +53,14 @@ class _MainScreenState extends State<MainScreen>
     if (_isSearching) {
       setState(() => _searchQuery = _searchController.text);
     }
+  }
+
+  bool _onHeroScrollNotification(ScrollNotification notification) {
+    final scrolled = notification.metrics.pixels > 36;
+    if (scrolled != _heroCollapsed) {
+      setState(() => _heroCollapsed = scrolled);
+    }
+    return false;
   }
 
   Future<void> _loadViewPreference() async {
@@ -122,22 +131,35 @@ class _MainScreenState extends State<MainScreen>
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
                   child: (!_isSearching || _searchQuery.isEmpty)
-                      ? _buildCinematicHero(
-                          key: const ValueKey('hero'),
-                          unwatched: _movieService.getUnwatchedMovies(),
-                          watched: _movieService.getWatchedMovies(),
+                      ? TweenAnimationBuilder<double>(
+                          key: const ValueKey('hero-collapse'),
+                          duration: const Duration(milliseconds: 320),
+                          curve: Curves.easeOutCubic,
+                          tween: Tween<double>(
+                            end: _heroCollapsed ? 1.0 : 0.0,
+                          ),
+                          builder: (context, collapse, _) =>
+                              _buildCinematicHero(
+                            key: const ValueKey('hero'),
+                            collapse: collapse,
+                            unwatched: _movieService.getUnwatchedMovies(),
+                            watched: _movieService.getWatchedMovies(),
+                          ),
                         )
                       : const SizedBox.shrink(key: ValueKey('no-hero')),
                 ),
                 Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildWatchlistTab(),
-                      _buildMovieList(_filterMovies(
-                        _movieService.getWatchedMovies(),
-                      )),
-                    ],
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onHeroScrollNotification,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildWatchlistTab(),
+                        _buildMovieList(_filterMovies(
+                          _movieService.getWatchedMovies(),
+                        )),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -176,12 +198,12 @@ class _MainScreenState extends State<MainScreen>
     return TextField(
       controller: _searchController,
       autofocus: true,
-      style: const TextStyle(color: Cinematic.textPrimaryDark),
+      style: TextStyle(color: Cinematic.textPrimaryOf(context)),
       cursorColor: Cinematic.neonViolet,
       decoration: InputDecoration(
         hintText: 'Search your radar...',
         hintStyle: TextStyle(
-          color: Cinematic.textSecondaryDark.withValues(alpha: 0.7),
+          color: Cinematic.textSecondaryOf(context).withValues(alpha: 0.7),
         ),
         border: InputBorder.none,
         icon: const Icon(
@@ -211,8 +233,8 @@ class _MainScreenState extends State<MainScreen>
               'Results for "$_searchQuery"',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Cinematic.textSecondaryDark,
+              style: TextStyle(
+                color: Cinematic.textSecondaryOf(context),
                 fontStyle: FontStyle.italic,
                 fontSize: 12,
               ),
@@ -230,12 +252,15 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Widget _buildTabBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Cinematic.surfaceBright.withValues(alpha: 0.55),
+        color: isDark
+            ? Cinematic.surfaceBright.withValues(alpha: 0.55)
+            : Colors.white.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: Cinematic.cardBorderOf(context)),
       ),
       child: TabBar(
         controller: _tabController,
@@ -245,7 +270,7 @@ class _MainScreenState extends State<MainScreen>
           gradient: Cinematic.glowGradient,
         ),
         labelColor: Colors.white,
-        unselectedLabelColor: Cinematic.textSecondaryDark,
+        unselectedLabelColor: Cinematic.textSecondaryOf(context),
         dividerColor: Colors.transparent,
         labelStyle: const TextStyle(
           fontWeight: FontWeight.w800,
@@ -271,12 +296,14 @@ class _MainScreenState extends State<MainScreen>
 
   Widget _buildCinematicHero({
     required Key key,
+    required double collapse,
     required List<Movie> unwatched,
     required List<Movie> watched,
   }) {
     final all = [...unwatched, ...watched];
     final posters = all.take(3).toList();
     const double heroHeight = 186;
+    final t = collapse.clamp(0.0, 1.0);
 
     return Padding(
       key: key,
@@ -284,7 +311,7 @@ class _MainScreenState extends State<MainScreen>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: Container(
-          height: heroHeight,
+          height: heroHeight - 118 * t,
           decoration: BoxDecoration(
             gradient: Cinematic.duskGradient,
             border: Border.all(
@@ -315,39 +342,46 @@ class _MainScreenState extends State<MainScreen>
               if (posters.isNotEmpty)
                 Positioned(
                   right: 6,
-                  bottom: -18,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (var i = 0; i < posters.length; i++)
-                        Transform.translate(
-                          offset: Offset(14 * (i - 1).toDouble(), -(i % 2) * 12.0),
-                          child: Transform.rotate(
-                            angle: (i - 1) * 0.14,
-                            child: Opacity(
-                              opacity: 0.94,
-                              child: _FloatingPoster(movie: posters[i]),
+                  bottom: -18 - 30 * t,
+                  child: Opacity(
+                    opacity: 1 - t,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (var i = 0; i < posters.length; i++)
+                          Transform.translate(
+                            offset:
+                                Offset(14 * (i - 1).toDouble(), -(i % 2) * 12.0),
+                            child: Transform.rotate(
+                              angle: (i - 1) * 0.14,
+                              child: Opacity(
+                                opacity: 0.94,
+                                child: _FloatingPoster(movie: posters[i]),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 )
               else
                 Positioned(
                   right: 16,
                   top: 30,
-                  child: Icon(
-                    Icons.movie_filter,
-                    size: 92,
-                    color: Colors.white.withValues(alpha: 0.08),
+                  child: Opacity(
+                    opacity: 1 - t,
+                    child: Icon(
+                      Icons.movie_filter,
+                      size: 92,
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
                   ),
                 ),
               // Headline copy
               Positioned(
                 left: 20,
-                top: 22,
-                right: 150,
+                top: 22 - 12 * t,
+                right: 150 - 134 * t,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -359,32 +393,35 @@ class _MainScreenState extends State<MainScreen>
                         all.isEmpty
                             ? 'START YOUR CINEMA'
                             : 'PICK YOUR NEXT FILM',
-                        maxLines: 2,
+                        maxLines: t > 0.4 ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 22,
+                        style: TextStyle(
+                          fontSize: 22 - 8 * t,
                           height: 1.1,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.2 - 0.2 * t,
                           color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        NeonChip(
-                          label: '${unwatched.length} to watch',
-                          icon: Icons.play_circle_outline,
-                          active: true,
-                        ),
-                        NeonChip(
-                          label: '${watched.length} watched',
-                          icon: Icons.check_circle_outline,
-                        ),
-                      ],
+                    SizedBox(height: 10 - 7 * t),
+                    Opacity(
+                      opacity: 1 - t,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          NeonChip(
+                            label: '${unwatched.length} to watch',
+                            icon: Icons.play_circle_outline,
+                            active: true,
+                          ),
+                          NeonChip(
+                            label: '${watched.length} watched',
+                            icon: Icons.check_circle_outline,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -501,7 +538,7 @@ class _MainScreenState extends State<MainScreen>
                   ? 'Try a different search term.'
                   : 'Add movies with the + button and let MovieRadar do the rest.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Cinematic.textSecondaryDark,
+                    color: Cinematic.textSecondaryOf(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -629,13 +666,17 @@ class _MainScreenState extends State<MainScreen>
     setState(() {
       _isSearching = !_isSearching;
       _searchQuery = '';
+      _heroCollapsed = false;
       if (!_isSearching) _searchController.clear();
     });
   }
 
   void _clearSearch() {
     _searchController.clear();
-    setState(() => _isSearching = false);
+    setState(() {
+      _isSearching = false;
+      _heroCollapsed = false;
+    });
   }
 }
 
@@ -1130,7 +1171,9 @@ class _WatchedStrip extends StatelessWidget {
               watched ? Icons.visibility : Icons.visibility_outlined,
               key: ValueKey(watched),
               size: 14,
-              color: watched ? colors.glow : Cinematic.textSecondaryDark,
+              color: watched
+                  ? colors.glow
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 6),
@@ -1142,7 +1185,9 @@ class _WatchedStrip extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
-                color: watched ? colors.glow : Cinematic.textSecondaryDark,
+                color: watched
+                    ? colors.glow
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -1244,7 +1289,7 @@ class _RandomMoviePickerDialogState extends State<_RandomMoviePickerDialog>
               width: 340,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Cinematic.surface,
+                color: Cinematic.surfaceOf(context),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
                   color: _isRevealed
@@ -1267,11 +1312,11 @@ class _RandomMoviePickerDialogState extends State<_RandomMoviePickerDialog>
                   Center(
                     child: Text(
                       _isRevealed ? "TONIGHT'S PICK" : 'SHUFFLING...',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 3,
-                        color: Cinematic.neonViolet,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -1306,7 +1351,7 @@ class _RandomMoviePickerDialogState extends State<_RandomMoviePickerDialog>
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.4,
-                            color: Colors.white,
+                            color: colors.glow,
                           ),
                     ),
                   ),
@@ -1318,8 +1363,8 @@ class _RandomMoviePickerDialogState extends State<_RandomMoviePickerDialog>
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Cinematic.textSecondaryDark,
+                    style: TextStyle(
+                      color: Cinematic.textSecondaryOf(context),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.4,
                       fontSize: 12,
