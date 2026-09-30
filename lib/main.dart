@@ -3,15 +3,14 @@ import 'package:movieradar/screens/main_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:movieradar/providers/theme_provider.dart';
 import 'package:movieradar/services/movie_service.dart';
+import 'package:movieradar/theme/cinematic_theme.dart';
 
 void main() async {
-  // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize services
+
   final movieService = MovieService();
   await movieService.init();
-  
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -28,11 +27,12 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         if (!themeProvider.isInitialized) {
-          // Show a loading screen while theme is being initialized
-          return const MaterialApp(
-            home: Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: CinematicTheme.dark(),
+            darkTheme: CinematicTheme.dark(),
+            themeMode: ThemeMode.dark,
+            home: const _SplashScreen(),
           );
         }
 
@@ -40,52 +40,8 @@ class MyApp extends StatelessWidget {
           title: 'MovieRadar',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.indigo,
-              brightness: Brightness.light,
-            ),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              elevation: 0,
-            ),
-            cardTheme: CardThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.indigo,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              elevation: 0,
-            ),
-            cardTheme: CardThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
+          theme: CinematicTheme.light(),
+          darkTheme: CinematicTheme.dark(),
           home: const MainScreen(),
         );
       },
@@ -93,4 +49,27 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Cinematic.bgTop,
+      body: Center(
+        child: ShaderMask(
+          shaderCallback: (bounds) => Cinematic.glowGradient.createShader(bounds),
+          child: const Text(
+            'MOVIERADAR',
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'dart:convert'; // Add the utf8 encoder
-import 'dart:typed_data'; // Add Uint8List support
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:movieradar/services/movie_service.dart';
 import 'package:movieradar/models/import_result.dart';
+import 'package:movieradar/theme/cinematic_theme.dart';
+import 'package:movieradar/widgets/cinematic_widgets.dart';
 
 class ImportExportScreen extends StatefulWidget {
   const ImportExportScreen({super.key});
@@ -27,9 +28,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CinematicScaffold(
       appBar: AppBar(
-        title: const Text('Import / Export'),
+        title: const Text(
+          'IMPORT / EXPORT',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 3,
+            fontSize: 17,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -45,10 +55,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Export Movies',
+                      'EXPORT MOVIES',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: Cinematic.neonViolet,
                       ),
                     ),                    const SizedBox(height: 8),
                     Text(
@@ -94,10 +106,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Import Movies',
+                      'IMPORT MOVIES',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: Cinematic.neonViolet,
                       ),
                     ),                    const SizedBox(height: 8),
                     Text(
@@ -160,7 +174,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             if (_statusMessage.isNotEmpty)              Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _isSuccess ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  color: _isSuccess ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: _isSuccess ? Colors.green : Colors.red,
@@ -225,10 +239,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                         Icon(Icons.lightbulb, color: Colors.amber),
                         SizedBox(width: 8),
                         Text(
-                          'Tips',
+                          'TIPS',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                            color: Cinematic.neonViolet,
                           ),
                         ),
                       ],

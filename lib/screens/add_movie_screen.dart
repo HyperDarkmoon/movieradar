@@ -1,9 +1,12 @@
-import 'dart:async'; // Used for the debounce Timer
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:movieradar/models/movie.dart';
 import 'package:movieradar/services/movie_service.dart';
 import 'package:movieradar/services/tmdb_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:movieradar/theme/cinematic_theme.dart';
+import 'package:movieradar/widgets/cinematic_widgets.dart';
 
 class AddMovieScreen extends StatefulWidget {
   const AddMovieScreen({super.key});
@@ -16,29 +19,21 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
   final _formKey = GlobalKey<FormState>();
   final MovieService _movieService = MovieService();
   final TMDBService _tmdbService = TMDBService();
-  
-  // Search controller
+
   final TextEditingController _searchController = TextEditingController();
-  
-  // Search results
   List<MovieSearchResult> _searchResults = [];
   bool _isSearching = false;
-  
-  // Selected movie details
-  MovieDetail? _selectedMovieDetails;
-  
-  // Form fields
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _directorController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _overviewController = TextEditingController();
-  
+
   String? _posterUrl;
   bool _isWatched = false;
-  
-  // Debouncer for search
+
   Timer? _debounce;
-  
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -49,8 +44,7 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
     _debounce?.cancel();
     super.dispose();
   }
-  
-  // Search for movies with debounce
+
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -61,39 +55,35 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
         });
         return;
       }
-      
-      setState(() {
-        _isSearching = true;
-      });
-      
+      setState(() => _isSearching = true);
+
       _tmdbService.searchMovies(query).then((results) {
+        if (!mounted) return;
         setState(() {
           _searchResults = results;
           _isSearching = false;
         });
       }).catchError((error) {
-        setState(() {
-          _isSearching = false;
-        });
+        if (!mounted) return;
+        setState(() => _isSearching = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error searching: $error')),
         );
       });
     });
   }
-  
-  // Update form with selected movie
+
   Future<void> _selectMovie(MovieSearchResult result) async {
     setState(() {
       _isSearching = true;
       _searchResults = [];
       _searchController.text = result.title;
     });
-    
+
     try {
       final details = await _tmdbService.getMovieDetails(result.id);
+      if (!mounted) return;
       setState(() {
-        _selectedMovieDetails = details;
         _titleController.text = details.title;
         if (details.director != null) {
           _directorController.text = details.director!;
@@ -104,13 +94,14 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
         if (details.overview != null) {
           _overviewController.text = details.overview!;
         }
-        _posterUrl = details.posterPath != null ? _tmdbService.getImageUrl(details.posterPath) : null;
+        _posterUrl = details.posterPath != null
+            ? _tmdbService.getImageUrl(details.posterPath)
+            : null;
         _isSearching = false;
       });
     } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
+      if (!mounted) return;
+      setState(() => _isSearching = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching movie details: $e')),
       );
@@ -119,161 +110,205 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final colors = CinematicColors.of(context);
+
+    return CinematicScaffold(
       appBar: AppBar(
-        title: const Text('Add Movie'),
+        title: const Text(
+          'ADD MOVIE',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 3,
+            fontSize: 17,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Search bar for movies
+              // TMDB search
               TextField(
                 controller: _searchController,
                 decoration: const InputDecoration(
-                  labelText: 'Search for a movie',
-                  border: OutlineInputBorder(),
+                  labelText: 'Search TMDB',
+                  hintText: 'Search for a movie...',
                   prefixIcon: Icon(Icons.search),
                 ),
                 onChanged: _onSearchChanged,
               ),
-              
-              // Search results
+              const SizedBox(height: 12),
+
               if (_isSearching)
                 const Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(20),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                
+
               if (_searchResults.isNotEmpty)
-                SizedBox(
+                Container(
                   height: 300,
+                  decoration: BoxDecoration(
+                    color: colors.glass,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
                   child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     itemCount: _searchResults.length,
                     itemBuilder: (context, index) {
                       final result = _searchResults[index];
                       return ListTile(
-                        leading: result.posterPath != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: CachedNetworkImage(
-                                imageUrl: _tmdbService.getImageUrl(result.posterPath),
-                                width: 50,
-                                placeholder: (context, url) => const SizedBox(
-                                  width: 50,
-                                  child: Center(child: CircularProgressIndicator()),
-                                ),
-                                errorWidget: (context, url, error) => const Icon(Icons.error),
-                              ),
-                            )
-                          : const SizedBox(
-                              width: 50,
-                              child: Icon(Icons.movie),
-                            ),
-                        title: Text(result.title),
-                        subtitle: Text(result.releaseYear != null ? 'Released: ${result.releaseYear}' : 'Unknown year'),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: result.posterPath != null
+                              ? CachedNetworkImage(
+                                  imageUrl: _tmdbService
+                                      .getImageUrl(result.posterPath),
+                                  width: 46,
+                                  height: 66,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) =>
+                                      const SizedBox(
+                                    width: 46,
+                                    height: 66,
+                                    child: ShimmerBox(
+                                      borderRadius: 8,
+                                      width: 46,
+                                      height: 66,
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const _ResultFallback(),
+                                )
+                              : const _ResultFallback(),
+                        ),
+                        title: Text(
+                          result.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        subtitle: Text(
+                          result.releaseYear != null
+                              ? 'Released ${result.releaseYear}'
+                              : 'Unknown year',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Cinematic.textSecondaryDark,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.add_circle_outline,
+                          color: Cinematic.neonViolet,
+                        ),
                         onTap: () => _selectMovie(result),
                       );
                     },
                   ),
                 ),
-              
-              const SizedBox(height: 16),
-              
-              // Movie details form
+
+              const SizedBox(height: 20),
+
+              // Poster preview
+              if (_posterUrl != null)
+                Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.glowSoft,
+                          blurRadius: 24,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: CachedNetworkImage(
+                        imageUrl: _posterUrl!,
+                        height: 220,
+                      ),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
+
+              // Manual entry form
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (_posterUrl != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: _posterUrl!,
-                              height: 200,
-                              placeholder: (context, url) => const SizedBox(
-                                height: 200,
-                                child: Center(child: CircularProgressIndicator()),
-                              ),
-                              errorWidget: (context, url, error) => const Icon(Icons.error, size: 100),
-                            ),
-                          ),
-                        ),
-                      ),
-                    
                     TextFormField(
                       controller: _titleController,
                       decoration: const InputDecoration(
                         labelText: 'Movie Title',
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.movie_outlined),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Please enter a title'
+                          : null,
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: _directorController,
                       decoration: const InputDecoration(
                         labelText: 'Director',
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.theater_comedy_outlined),
                       ),
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: _yearController,
                       decoration: const InputDecoration(
                         labelText: 'Release Year',
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.calendar_today_outlined),
                       ),
                       keyboardType: TextInputType.number,
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: _overviewController,
                       decoration: const InputDecoration(
                         labelText: 'Overview',
-                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
                       ),
                       maxLines: 3,
                     ),
-                    
-                    const SizedBox(height: 24),
-                    
+                    const SizedBox(height: 8),
                     SwitchListTile(
-                      title: const Text('Already watched?'),
-                      value: _isWatched,
-                      onChanged: (bool value) {
-                        setState(() {
-                          _isWatched = value;
-                        });
-                      },
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    ElevatedButton(
-                      onPressed: _saveMovie,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      title: const Text(
+                        'ALREADY WATCHED',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                      child: const Text('Save Movie'),
+                      subtitle: const Text('Add it directly to your history'),
+                      value: _isWatched,
+                      onChanged: (value) => setState(() => _isWatched = value),
+                    ),
+                    const SizedBox(height: 20),
+                    CinematicButton(
+                      label: 'SAVE MOVIE',
+                      icon: Icons.check,
+                      onPressed: _saveMovie,
                     ),
                   ],
                 ),
@@ -290,16 +325,37 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
       final newMovie = Movie(
         id: _movieService.generateUniqueId(),
         title: _titleController.text,
-        director: _directorController.text.isEmpty ? null : _directorController.text,
-        releaseYear: _yearController.text.isEmpty ? null : int.tryParse(_yearController.text),
-        overview: _overviewController.text.isEmpty ? null : _overviewController.text,
+        director:
+            _directorController.text.isEmpty ? null : _directorController.text,
+        releaseYear: _yearController.text.isEmpty
+            ? null
+            : int.tryParse(_yearController.text),
+        overview:
+            _overviewController.text.isEmpty ? null : _overviewController.text,
         posterUrl: _posterUrl,
         isWatched: _isWatched,
         dateAdded: DateTime.now(),
         dateWatched: _isWatched ? DateTime.now() : null,
       );
-      
+
       Navigator.pop(context, newMovie);
     }
+  }
+}
+
+class _ResultFallback extends StatelessWidget {
+  const _ResultFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 66,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        gradient: Cinematic.glowGradient,
+      ),
+      child: const Icon(Icons.local_movies, size: 22, color: Colors.white),
+    );
   }
 }
